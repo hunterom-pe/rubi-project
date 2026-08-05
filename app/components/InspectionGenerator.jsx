@@ -129,21 +129,30 @@ export default function InspectionGenerator() {
 
     try {
       const docChildren = [
-        // Document Header
+        // Main Title Header
         new Paragraph({
           text: "Inspection Defect Summary Report",
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER,
-          spaceAfter: 200,
+          spaceBefore: 200,
+          spaceAfter: 300, // Generous spacing after document title
         }),
+
+        // Sub-header File Metadata
         new Paragraph({
           children: [
-            new TextRun({ text: `Report File: `, bold: true, size: 20 }),
-            new TextRun({ text: `${data.fileName || "Inspection_Report.pdf"}`, size: 20 }),
-            new TextRun({ text: `   |   Date Generated: `, bold: true, size: 20 }),
-            new TextRun({ text: `${new Date().toLocaleDateString()}`, size: 20 }),
+            new TextRun({ text: `Report File: `, bold: true, size: 20, color: "475569" }),
+            new TextRun({ text: `${data.fileName || "Inspection_Report.pdf"}`, size: 20, color: "1E293B" }),
+            new TextRun({ text: `    |    Date Generated: `, bold: true, size: 20, color: "475569" }),
+            new TextRun({ text: `${new Date().toLocaleDateString()}`, size: 20, color: "1E293B" }),
           ],
           alignment: AlignmentType.CENTER,
+          spaceAfter: 600, // Clear separation space before main document content
+        }),
+
+        // Decorative Separator Spacer
+        new Paragraph({
+          text: "",
           spaceAfter: 400,
         }),
       ];
@@ -164,8 +173,8 @@ export default function InspectionGenerator() {
               }),
             ],
             heading: HeadingLevel.HEADING_2,
-            spaceBefore: 300,
-            spaceAfter: 200,
+            spaceBefore: 400, // Generous spacing before top category header
+            spaceAfter: 250,
           })
         );
 
@@ -184,8 +193,8 @@ export default function InspectionGenerator() {
                 }),
               ],
               heading: HeadingLevel.HEADING_3,
-              spaceBefore: 150,
-              spaceAfter: 100,
+              spaceBefore: 250,
+              spaceAfter: 150,
             })
           );
 
@@ -239,8 +248,8 @@ export default function InspectionGenerator() {
             })
           );
 
-          // Spacer
-          docChildren.push(new Paragraph({ text: "", spaceAfter: 150 }));
+          // Spacer after table
+          docChildren.push(new Paragraph({ text: "", spaceAfter: 250 }));
         });
       };
 
