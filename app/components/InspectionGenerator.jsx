@@ -84,7 +84,6 @@ export default function InspectionGenerator() {
     }
   };
 
-  // Helper to update item field inline
   const updateItem = (category, index, field, value) => {
     if (!data) return;
     const updatedList = [...data[category]];
@@ -92,14 +91,12 @@ export default function InspectionGenerator() {
     setData({ ...data, [category]: updatedList });
   };
 
-  // Delete item
   const deleteItem = (category, index) => {
     if (!data) return;
     const updatedList = data[category].filter((_, idx) => idx !== index);
     setData({ ...data, [category]: updatedList });
   };
 
-  // Add new item manually
   const addItem = (category) => {
     if (!data) return;
     const newItem = {
@@ -107,11 +104,11 @@ export default function InspectionGenerator() {
       section: "General / Miscellaneous",
       title: "New Inspection Finding",
       summary: "Short 1-2 sentence description of the defect.",
+      images: [],
     };
     setData({ ...data, [category]: [...data[category], newItem] });
   };
 
-  // Helper to group items by section
   const groupItemsBySection = (items) => {
     const map = {};
     items.forEach((item) => {
@@ -210,21 +207,21 @@ export default function InspectionGenerator() {
                   children: [new Paragraph({ children: [new TextRun({ text: "Code", bold: true, size: 18 })] })],
                 }),
                 new TableCell({
-                  width: { size: 30, type: WidthType.PERCENTAGE },
+                  width: { size: 28, type: WidthType.PERCENTAGE },
                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
                   children: [new Paragraph({ children: [new TextRun({ text: "Finding / Item Title", bold: true, size: 18 })] })],
                 }),
                 new TableCell({
-                  width: { size: isRed ? 38 : 58, type: WidthType.PERCENTAGE },
+                  width: { size: isRed ? 35 : 60, type: WidthType.PERCENTAGE },
                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
                   children: [new Paragraph({ children: [new TextRun({ text: "Inspection Summary", bold: true, size: 18 })] })],
                 }),
                 ...(isRed
                   ? [
                       new TableCell({
-                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        width: { size: 25, type: WidthType.PERCENTAGE },
                         shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
-                        children: [new Paragraph({ children: [new TextRun({ text: "Defect Photo", bold: true, size: 18 })] })],
+                        children: [new Paragraph({ children: [new TextRun({ text: "Defect Photos", bold: true, size: 18 })] })],
                       }),
                     ]
                   : []),
@@ -249,26 +246,34 @@ export default function InspectionGenerator() {
 
             if (isRed) {
               const imageCellChildren = [];
-              if (item.imageBase64) {
-                try {
-                  const imageBytes = Uint8Array.from(atob(item.imageBase64), (c) => c.charCodeAt(0));
-                  imageCellChildren.push(
-                    new Paragraph({
-                      children: [
-                        new ImageRun({
-                          data: imageBytes,
-                          transformation: {
-                            width: 140,
-                            height: 105,
-                          },
-                        }),
-                      ],
-                    })
-                  );
-                } catch (e) {
-                  console.warn("Failed to render image in Word:", e);
-                  imageCellChildren.push(new Paragraph({ children: [new TextRun({ text: "[Photo Available]", size: 16, italic: true })] }));
-                }
+              const itemImages = item.images && item.images.length > 0
+                ? item.images
+                : item.imageBase64
+                ? [{ base64: item.imageBase64 }]
+                : [];
+
+              if (itemImages.length > 0) {
+                itemImages.forEach((imgObj, imgIdx) => {
+                  try {
+                    const imageBytes = Uint8Array.from(atob(imgObj.base64), (c) => c.charCodeAt(0));
+                    imageCellChildren.push(
+                      new Paragraph({
+                        children: [
+                          new ImageRun({
+                            data: imageBytes,
+                            transformation: {
+                              width: 140,
+                              height: 105,
+                            },
+                          }),
+                        ],
+                        spaceAfter: 100,
+                      })
+                    );
+                  } catch (e) {
+                    console.warn(`Failed to render image ${imgIdx} in Word:`, e);
+                  }
+                });
               } else {
                 imageCellChildren.push(new Paragraph({ children: [new TextRun({ text: "N/A", size: 16, color: "94A3B8" })] }));
               }
@@ -290,7 +295,7 @@ export default function InspectionGenerator() {
         });
       };
 
-      // Add Red Items (with images)
+      // Add Red Items (with all images)
       addCategoryToDoc("1. SIGNIFICANT AND/OR SAFETY CONCERNS (RED ITEMS)", data.redItems, true);
 
       // Add Yellow Items
@@ -412,7 +417,7 @@ export default function InspectionGenerator() {
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Scanning PDF & Extracting Red Defect Photos...</span>
+                  <span>Scanning PDF & Extracting All Red Defect Photos...</span>
                 </>
               ) : (
                 <>
@@ -532,40 +537,46 @@ export default function InspectionGenerator() {
               {data.redItems.length === 0 ? (
                 <p className="text-xs text-slate-400 italic px-2">No Red (Safety Concern) items detected.</p>
               ) : (
-                data.redItems.map((item, idx) => (
-                  <div key={`red-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-500">Item Code</label>
-                        <input
-                          type="text"
-                          value={item.code}
-                          onChange={(e) => updateItem("redItems", idx, "code", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-500">Section Group</label>
-                        <input
-                          type="text"
-                          value={item.section}
-                          onChange={(e) => updateItem("redItems", idx, "section", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-500">Item Title</label>
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={(e) => updateItem("redItems", idx, "title", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
-                        />
-                      </div>
-                    </div>
+                data.redItems.map((item, idx) => {
+                  const itemImages = item.images && item.images.length > 0 
+                    ? item.images 
+                    : item.imageUrl 
+                    ? [{ dataUrl: item.imageUrl }] 
+                    : [];
 
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-start">
-                      <div className="sm:col-span-3 space-y-1">
+                  return (
+                    <div key={`red-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-500">Item Code</label>
+                          <input
+                            type="text"
+                            value={item.code}
+                            onChange={(e) => updateItem("redItems", idx, "code", e.target.value)}
+                            className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-500">Section Group</label>
+                          <input
+                            type="text"
+                            value={item.section}
+                            onChange={(e) => updateItem("redItems", idx, "section", e.target.value)}
+                            className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-semibold text-slate-500">Item Title</label>
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={(e) => updateItem("redItems", idx, "title", e.target.value)}
+                            className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <label className="block text-[11px] font-semibold text-slate-500">Inspection Summary (1-2 Sentences)</label>
                           <button
@@ -578,32 +589,37 @@ export default function InspectionGenerator() {
                           </button>
                         </div>
                         <textarea
-                          rows={3}
+                          rows={2}
                           value={item.summary}
                           onChange={(e) => updateItem("redItems", idx, "summary", e.target.value)}
                           className="w-full p-3 text-xs rounded-lg border border-slate-200 bg-slate-50 leading-relaxed outline-none focus:border-indigo-500"
                         />
-                      </div>
 
-                      {/* Photo Thumbnail */}
-                      <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-slate-500 flex items-center gap-1">
-                          <ImageIcon className="w-3 h-3 text-red-500" />
-                          Defect Photo
-                        </label>
-                        {item.imageUrl ? (
-                          <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 max-h-28 flex items-center justify-center">
-                            <img src={item.imageUrl} alt={item.title} className="w-full h-24 object-cover" />
-                          </div>
-                        ) : (
-                          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 h-24 flex items-center justify-center text-[10px] text-slate-400 text-center p-2">
-                            No image extracted from page {item.pageNumber || "-"}
-                          </div>
-                        )}
+                        {/* All Photo Thumbnails */}
+                        <div className="space-y-1 pt-1">
+                          <label className="block text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3 text-red-500" />
+                            Extracted Photos ({itemImages.length})
+                          </label>
+                          
+                          {itemImages.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {itemImages.map((img, imgIdx) => (
+                                <div key={imgIdx} className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 w-28 h-20 flex items-center justify-center">
+                                  <img src={img.dataUrl} alt={`Photo ${imgIdx + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-400 italic">
+                              No photos detected on page {item.pageNumber || "-"}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}

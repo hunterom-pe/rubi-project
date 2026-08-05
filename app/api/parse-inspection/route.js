@@ -4,19 +4,20 @@ import { PDFDocument, PDFName } from "pdf-lib";
 
 export const maxDuration = 60; // Allow up to 60s for PDF parsing & image extraction
 
-// Helper to extract embedded images from a specific page in a PDF using pdf-lib
-async function extractImageFromPage(pdfBytes, pageNum) {
+// Helper to extract ALL embedded images from a specific page in a PDF using pdf-lib
+async function extractAllImagesFromPage(pdfBytes, pageNum) {
+  const images = [];
   try {
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
-    if (!pageNum || pageNum < 1 || pageNum > pages.length) return null;
+    if (!pageNum || pageNum < 1 || pageNum > pages.length) return images;
 
     const page = pages[pageNum - 1];
     const resources = page.node.Resources();
-    if (!resources) return null;
+    if (!resources) return images;
 
     const xObjectDict = resources.get(PDFName.of("XObject"));
-    if (!xObjectDict) return null;
+    if (!xObjectDict) return images;
 
     const keys = xObjectDict.keys ? xObjectDict.keys() : [];
     for (const key of keys) {
@@ -26,17 +27,18 @@ async function extractImageFromPage(pdfBytes, pageNum) {
         const subtype = stream.dict.get(PDFName.of("Subtype"));
         if (subtype === PDFName.of("Image")) {
           const contents = stream.getContents();
-          if (contents && contents.length > 2000) { // Exclude small logo/icon graphics
+          // Filter out tiny UI elements/icons (< 2000 bytes)
+          if (contents && contents.length > 2000) {
             const filter = stream.dict.get(PDFName.of("Filter"));
             let mime = "image/png";
             if (filter === PDFName.of("DCTDecode") || filter?.toString() === "/DCTDecode") {
               mime = "image/jpeg";
             }
-            return {
+            images.push({
               mime,
               base64: Buffer.from(contents).toString("base64"),
               dataUrl: `data:${mime};base64,${Buffer.from(contents).toString("base64")}`,
-            };
+            });
           }
         }
       }
@@ -44,7 +46,7 @@ async function extractImageFromPage(pdfBytes, pageNum) {
   } catch (e) {
     console.warn(`Image extraction failed for page ${pageNum}:`, e.message);
   }
-  return null;
+  return images;
 }
 
 export async function POST(request) {
@@ -91,7 +93,7 @@ Grouping Rules:
 - Group items by their section topic.
 - Extract item codes/numbers if present (e.g., "3.1.1", "4.2.3"). If missing, assign a sequential code like "1.1".
 - Extract the item title (e.g. "General: Home Energy Rating System Evaluation Recommended").
-- Identify the exact page number (1-based integer) where this finding or photo appears in the PDF report.
+- Identify the exact page number (1-based integer) where this finding or photos appear in the PDF report.
 - Provide a concise 1 to 2 sentence summary describing the defect and recommended action.
 
 Return ONLY a valid JSON object matching this exact structure with NO markdown wrapping or formatting:
@@ -157,21 +159,19 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
     const redItemsRaw = parsedData.redItems || [];
     const yellowItemsRaw = parsedData.yellowItems || [];
 
-    // Extract images for RED items from the PDF pages
+    // Extract ALL images for RED items from the PDF pages
     const redItemsWithImages = await Promise.all(
       redItemsRaw.map(async (item) => {
         if (item.pageNumber) {
-          const imgData = await extractImageFromPage(buffer, item.pageNumber);
-          if (imgData) {
-            return {
-              ...item,
-              imageMime: imgData.mime,
-              imageBase64: imgData.base64,
-              imageUrl: imgData.dataUrl,
-            };
-          }
+          const images = await extractAllImagesFromPage(buffer, item.pageNumber);
+          return {
+            ...item,
+            images, // Array of ALL images found on that defect page!
+            imageUrl: images[0]?.dataUrl || null,
+            imageBase64: images[0]?.base64 || null,
+          };
         }
-        return item;
+        return { ...item, images: [] };
       })
     );
 
