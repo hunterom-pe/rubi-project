@@ -1,14 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { PDFDocument, PDFName } from "pdf-lib";
+import { jsonrepair } from "jsonrepair";
 
 export const maxDuration = 60; // Allow up to 60s for PDF parsing & image extraction
 
-// Helper to extract ALL embedded images from a specific page in a PDF using pdf-lib
-async function extractAllImagesFromPage(pdfBytes, pageNum) {
+// Helper to extract ALL embedded images from a specific page in a PDF using pre-loaded pdfDoc
+function extractAllImagesFromPage(pdfDoc, pageNum) {
   const images = [];
   try {
-    const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
     if (!pageNum || pageNum < 1 || pageNum > pages.length) return images;
 
@@ -80,12 +80,26 @@ export async function POST(request) {
     const buffer = Buffer.from(arrayBuffer);
     const base64Pdf = buffer.toString("base64");
 
+    // Load PDF once in memory for ultra-fast image extractions
+    let pdfDoc = null;
+    try {
+      pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    } catch (pdfErr) {
+      console.warn("pdf-lib pre-load warning:", pdfErr.message);
+    }
+
     const ai = new GoogleGenAI({ apiKey });
 
     const promptText = `Analyze this home inspection report PDF carefully.
 
-Your task is to extract and organize all inspection defects into two main categories based on severity:
-1. RED ITEMS: "Significant and/or Safety Concern", "Major Defects", "Safety Concerns", or equivalent high-priority items.
+Your task is to extract ALL inspection defect findings from Page 1 through the VERY LAST PAGE of the report.
+
+CRITICAL INSTRUCTIONS:
+- DO NOT STOP, CAP, OR TRUNCATE THE LIST. Extract EVERY SINGLE RED AND YELLOW FINDING IN THE ENTIRE DOCUMENT.
+- Ensure string values in JSON do NOT contain unescaped quotes or raw newlines. Use single quotes or spaces inside strings.
+
+Categorize every item based on severity:
+1. RED ITEMS: "Significant and/or Safety Concern", "Major Defects", "Safety Hazards", or equivalent high-priority items.
 2. YELLOW ITEMS: "Possible Defects", "Maintenance Needed", "Repair / Replace Items", or equivalent moderate-priority items.
 
 Grouping Rules:
@@ -119,7 +133,7 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
 }`;
 
     let jsonResultText = "";
-    const candidateModels = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash"];
+    const candidateModels = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"];
 
     for (const modelName of candidateModels) {
       try {
@@ -136,6 +150,7 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
           ],
           config: {
             responseMimeType: "application/json",
+            maxOutputTokens: 8192,
           },
         });
 
@@ -154,26 +169,33 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
     }
 
     const cleanedJson = jsonResultText.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
-    const parsedData = JSON.parse(cleanedJson);
+    
+    // Use jsonrepair to automatically repair unescaped quotes or newlines inside JSON strings
+    let parsedData = { redItems: [], yellowItems: [] };
+    try {
+      const repairedJson = jsonrepair(cleanedJson);
+      parsedData = JSON.parse(repairedJson);
+    } catch (parseErr) {
+      console.warn("JSON repair fallback error:", parseErr.message);
+      parsedData = JSON.parse(cleanedJson);
+    }
 
     const redItemsRaw = parsedData.redItems || [];
     const yellowItemsRaw = parsedData.yellowItems || [];
 
-    // Extract ALL images for RED items from the PDF pages
-    const redItemsWithImages = await Promise.all(
-      redItemsRaw.map(async (item) => {
-        if (item.pageNumber) {
-          const images = await extractAllImagesFromPage(buffer, item.pageNumber);
-          return {
-            ...item,
-            images, // Array of ALL images found on that defect page!
-            imageUrl: images[0]?.dataUrl || null,
-            imageBase64: images[0]?.base64 || null,
-          };
-        }
-        return { ...item, images: [] };
-      })
-    );
+    // Extract ALL images for RED items from the PDF pages using pre-loaded pdfDoc
+    const redItemsWithImages = redItemsRaw.map((item) => {
+      if (pdfDoc && item.pageNumber) {
+        const images = extractAllImagesFromPage(pdfDoc, item.pageNumber);
+        return {
+          ...item,
+          images, // Array of ALL images found on that defect page!
+          imageUrl: images[0]?.dataUrl || null,
+          imageBase64: images[0]?.base64 || null,
+        };
+      }
+      return { ...item, images: [] };
+    });
 
     return NextResponse.json({
       redItems: redItemsWithImages,
