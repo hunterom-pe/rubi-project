@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { 
   FileText, Upload, Sparkles, CheckCircle2, AlertTriangle, AlertCircle, 
-  Download, Edit3, Plus, Trash2, RefreshCw, File, ChevronDown, Filter, LayerGroup
+  Download, Edit3, Plus, Trash2, RefreshCw, File, ChevronDown, Filter, LayerGroup, Image as ImageIcon
 } from "lucide-react";
 import { 
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, 
-  Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType 
+  Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, ImageRun
 } from "docx";
 
 export default function InspectionGenerator() {
@@ -135,7 +135,7 @@ export default function InspectionGenerator() {
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER,
           spaceBefore: 200,
-          spaceAfter: 300, // Generous spacing after document title
+          spaceAfter: 300,
         }),
 
         // Sub-header File Metadata
@@ -147,7 +147,7 @@ export default function InspectionGenerator() {
             new TextRun({ text: `${new Date().toLocaleDateString()}`, size: 20, color: "1E293B" }),
           ],
           alignment: AlignmentType.CENTER,
-          spaceAfter: 600, // Clear separation space before main document content
+          spaceAfter: 600,
         }),
 
         // Decorative Separator Spacer
@@ -169,11 +169,11 @@ export default function InspectionGenerator() {
                 text: title,
                 bold: true,
                 size: 26,
-                color: isRed ? "991B1B" : "92400E", // Dark red vs dark amber
+                color: isRed ? "991B1B" : "92400E",
               }),
             ],
             heading: HeadingLevel.HEADING_2,
-            spaceBefore: 400, // Generous spacing before top category header
+            spaceBefore: 400,
             spaceAfter: 250,
           })
         );
@@ -205,40 +205,78 @@ export default function InspectionGenerator() {
               tableHeader: true,
               children: [
                 new TableCell({
-                  width: { size: 15, type: WidthType.PERCENTAGE },
+                  width: { size: 12, type: WidthType.PERCENTAGE },
                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
                   children: [new Paragraph({ children: [new TextRun({ text: "Code", bold: true, size: 18 })] })],
                 }),
                 new TableCell({
-                  width: { size: 35, type: WidthType.PERCENTAGE },
+                  width: { size: 30, type: WidthType.PERCENTAGE },
                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
                   children: [new Paragraph({ children: [new TextRun({ text: "Finding / Item Title", bold: true, size: 18 })] })],
                 }),
                 new TableCell({
-                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  width: { size: isRed ? 38 : 58, type: WidthType.PERCENTAGE },
                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
                   children: [new Paragraph({ children: [new TextRun({ text: "Inspection Summary", bold: true, size: 18 })] })],
                 }),
+                ...(isRed
+                  ? [
+                      new TableCell({
+                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
+                        children: [new Paragraph({ children: [new TextRun({ text: "Defect Photo", bold: true, size: 18 })] })],
+                      }),
+                    ]
+                  : []),
               ],
             }),
           ];
 
           grouped[sectionName].forEach((item) => {
-            tableRows.push(
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: item.code || "-", size: 18, bold: true })] })],
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: item.title || "Item", size: 18, bold: true })] })],
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: item.summary || "", size: 18 })] })],
-                  }),
-                ],
-              })
-            );
+            const summaryChildren = [new Paragraph({ children: [new TextRun({ text: item.summary || "", size: 18 })] })];
+
+            const rowCells = [
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: item.code || "-", size: 18, bold: true })] })],
+              }),
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: item.title || "Item", size: 18, bold: true })] })],
+              }),
+              new TableCell({
+                children: summaryChildren,
+              }),
+            ];
+
+            if (isRed) {
+              const imageCellChildren = [];
+              if (item.imageBase64) {
+                try {
+                  const imageBytes = Uint8Array.from(atob(item.imageBase64), (c) => c.charCodeAt(0));
+                  imageCellChildren.push(
+                    new Paragraph({
+                      children: [
+                        new ImageRun({
+                          data: imageBytes,
+                          transformation: {
+                            width: 140,
+                            height: 105,
+                          },
+                        }),
+                      ],
+                    })
+                  );
+                } catch (e) {
+                  console.warn("Failed to render image in Word:", e);
+                  imageCellChildren.push(new Paragraph({ children: [new TextRun({ text: "[Photo Available]", size: 16, italic: true })] }));
+                }
+              } else {
+                imageCellChildren.push(new Paragraph({ children: [new TextRun({ text: "N/A", size: 16, color: "94A3B8" })] }));
+              }
+
+              rowCells.push(new TableCell({ children: imageCellChildren }));
+            }
+
+            tableRows.push(new TableRow({ children: rowCells }));
           });
 
           docChildren.push(
@@ -248,12 +286,11 @@ export default function InspectionGenerator() {
             })
           );
 
-          // Spacer after table
           docChildren.push(new Paragraph({ text: "", spaceAfter: 250 }));
         });
       };
 
-      // Add Red Items
+      // Add Red Items (with images)
       addCategoryToDoc("1. SIGNIFICANT AND/OR SAFETY CONCERNS (RED ITEMS)", data.redItems, true);
 
       // Add Yellow Items
@@ -375,7 +412,7 @@ export default function InspectionGenerator() {
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Scanning PDF & Categorizing Findings...</span>
+                  <span>Scanning PDF & Extracting Red Defect Photos...</span>
                 </>
               ) : (
                 <>
@@ -496,7 +533,7 @@ export default function InspectionGenerator() {
                 <p className="text-xs text-slate-400 italic px-2">No Red (Safety Concern) items detected.</p>
               ) : (
                 data.redItems.map((item, idx) => (
-                  <div key={`red-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                  <div key={`red-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-500">Item Code</label>
@@ -527,24 +564,43 @@ export default function InspectionGenerator() {
                       </div>
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-500">Inspection Summary (1-2 Sentences)</label>
-                        <button
-                          type="button"
-                          onClick={() => deleteItem("redItems", idx)}
-                          className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-start">
+                      <div className="sm:col-span-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-semibold text-slate-500">Inspection Summary (1-2 Sentences)</label>
+                          <button
+                            type="button"
+                            onClick={() => deleteItem("redItems", idx)}
+                            className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={item.summary}
+                          onChange={(e) => updateItem("redItems", idx, "summary", e.target.value)}
+                          className="w-full p-3 text-xs rounded-lg border border-slate-200 bg-slate-50 leading-relaxed outline-none focus:border-indigo-500"
+                        />
                       </div>
-                      <textarea
-                        rows={2}
-                        value={item.summary}
-                        onChange={(e) => updateItem("redItems", idx, "summary", e.target.value)}
-                        className="w-full p-3 text-xs rounded-lg border border-slate-200 bg-slate-50 leading-relaxed outline-none focus:border-indigo-500"
-                      />
+
+                      {/* Photo Thumbnail */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3 text-red-500" />
+                          Defect Photo
+                        </label>
+                        {item.imageUrl ? (
+                          <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 max-h-28 flex items-center justify-center">
+                            <img src={item.imageUrl} alt={item.title} className="w-full h-24 object-cover" />
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 h-24 flex items-center justify-center text-[10px] text-slate-400 text-center p-2">
+                            No image extracted from page {item.pageNumber || "-"}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
