@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { PDFDocument, PDFName } from "pdf-lib";
 import { jsonrepair } from "jsonrepair";
+import { PDFParse } from "pdf-parse";
 
 export const maxDuration = 60; // Allow up to 60s for PDF parsing & image extraction
 
@@ -61,13 +62,6 @@ export async function POST(request) {
       );
     }
 
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      return NextResponse.json(
-        { error: "Invalid file type. Please upload a PDF inspection file." },
-        { status: 400 }
-      );
-    }
-
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -77,20 +71,30 @@ export async function POST(request) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Pdf = buffer.toString("base64");
+    const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Load PDF once in memory for ultra-fast image extractions
+    // Extract text fast using PDFParse (Uint8Array) to avoid memory limits
+    let extractedText = "";
+    try {
+      const parser = new PDFParse(uint8Array);
+      const pdfData = await parser.getText();
+      extractedText = pdfData.text || "";
+      console.log(`PDFParse extracted ${extractedText.length} characters of text from ${file.name}`);
+    } catch (parseErr) {
+      console.warn("PDFParse text extraction warning:", parseErr.message);
+    }
+
+    // Pre-load PDF once in memory for ultra-fast image extractions
     let pdfDoc = null;
     try {
-      pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+      pdfDoc = await PDFDocument.load(uint8Array, { ignoreEncryption: true });
     } catch (pdfErr) {
       console.warn("pdf-lib pre-load warning:", pdfErr.message);
     }
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const promptText = `Analyze this home inspection report PDF carefully.
+    const promptText = `Analyze this home inspection report carefully.
 
 Your task is to extract ALL inspection defect findings from Page 1 through the VERY LAST PAGE of the report.
 
@@ -132,6 +136,23 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
   ]
 }`;
 
+    // Build payload content for Gemini: use text if extracted, or inline Base64 fallback
+    let geminiContents;
+    if (extractedText && extractedText.trim().length > 50) {
+      geminiContents = `${promptText}\n\nINSPECTION REPORT TEXT:\n${extractedText.slice(0, 120000)}`;
+    } else {
+      const base64Pdf = Buffer.from(arrayBuffer).toString("base64");
+      geminiContents = [
+        {
+          inlineData: {
+            mimeType: "application/pdf",
+            data: base64Pdf,
+          },
+        },
+        promptText,
+      ];
+    }
+
     let jsonResultText = "";
     const candidateModels = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"];
 
@@ -139,15 +160,7 @@ Return ONLY a valid JSON object matching this exact structure with NO markdown w
       try {
         const response = await ai.models.generateContent({
           model: modelName,
-          contents: [
-            {
-              inlineData: {
-                mimeType: "application/pdf",
-                data: base64Pdf,
-              },
-            },
-            promptText,
-          ],
+          contents: geminiContents,
           config: {
             responseMimeType: "application/json",
             maxOutputTokens: 8192,
