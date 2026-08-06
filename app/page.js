@@ -203,7 +203,7 @@ export default function Home() {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Tab View */}
-      <div className="max-w-3xl mx-auto w-full py-8 px-4 sm:px-6 lg:px-8 flex-1">
+      <div className={`mx-auto w-full py-8 px-4 sm:px-6 lg:px-8 flex-1 ${activeTab === "inspection" ? "max-w-5xl" : "max-w-3xl"}`}>
         
         {activeTab === "denial" ? (
           /* TAB 1: WARRANTY DENIAL WRITER */
