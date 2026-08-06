@@ -1,17 +1,23 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Shield, FileText, Wand2 } from "lucide-react";
 
 export default function Navbar({ activeTab, setActiveTab }) {
+  const pathname = usePathname();
+  const currentTab = activeTab || (pathname === "/inspection" ? "inspection" : "denial");
+
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-indigo-100 sticky top-0 z-[100] shadow-sm">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           
           {/* Brand Logo & Title */}
-          <div 
-            className="flex items-center gap-3 cursor-pointer group select-none" 
-            onClick={() => setActiveTab("denial")}
+          <Link 
+            href="/"
+            onClick={() => setActiveTab && setActiveTab("denial")}
+            className="flex items-center gap-3 cursor-pointer group select-none"
           >
             <div className="p-2.5 bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 text-white rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 ring-4 ring-indigo-50">
               <Wand2 className="w-5 h-5 stroke-[2.2]" />
@@ -29,45 +35,35 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 Warranty & Inspection AI Specialist
               </span>
             </div>
-          </div>
+          </Link>
 
-          {/* Clickable Navigation Tabs */}
+          {/* Clickable Navigation Tabs with Direct Routes */}
           <nav className="flex items-center bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 shadow-inner relative z-50">
-            <button
-              id="tab-denial"
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveTab("denial");
-              }}
+            <Link
+              href="/"
+              onClick={() => setActiveTab && setActiveTab("denial")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer select-none relative z-50 ${
-                activeTab === "denial"
+                currentTab === "denial"
                   ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 scale-[1.02]"
                   : "text-slate-600 hover:text-indigo-600 hover:bg-white/80"
               }`}
             >
               <Shield className="w-4 h-4 stroke-[2.5]" />
               <span>Denial Writer</span>
-            </button>
+            </Link>
 
-            <button
-              id="tab-inspection"
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveTab("inspection");
-              }}
+            <Link
+              href="/inspection"
+              onClick={() => setActiveTab && setActiveTab("inspection")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer select-none relative z-50 ${
-                activeTab === "inspection"
+                currentTab === "inspection"
                   ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 scale-[1.02]"
                   : "text-slate-600 hover:text-indigo-600 hover:bg-white/80"
               }`}
             >
               <FileText className="w-4 h-4 stroke-[2.5]" />
               <span>Inspection Generator</span>
-            </button>
+            </Link>
           </nav>
 
         </div>
