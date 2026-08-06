@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { 
-  FileText, Upload, Sparkles, CheckCircle2, AlertTriangle, AlertCircle, 
-  Download, Edit3, Plus, Trash2, RefreshCw, File, ChevronDown, Filter, LayerGroup, Image as ImageIcon
+  FileText, Upload, Sparkles, AlertTriangle, AlertCircle, 
+  Download, Plus, Trash2, RefreshCw, File, Image as ImageIcon, Sparkle, Layers, CheckCircle2
 } from "lucide-react";
 import { 
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, 
-  Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, ImageRun
+  Table, TableRow, TableCell, WidthType, ShadingType, ImageRun
 } from "docx";
 
 export default function InspectionGenerator() {
@@ -246,10 +246,10 @@ export default function InspectionGenerator() {
 
             if (isRed) {
               const imageCellChildren = [];
-              const itemImages = item.images && item.images.length > 0
-                ? item.images
-                : item.imageBase64
-                ? [{ base64: item.imageBase64 }]
+              const itemImages = item.images && item.images.length > 0 
+                ? item.images 
+                : item.imageUrl 
+                ? [{ dataUrl: item.imageUrl }] 
                 : [];
 
               if (itemImages.length > 0) {
@@ -295,7 +295,7 @@ export default function InspectionGenerator() {
         });
       };
 
-      // Add Red Items (with all images)
+      // Add Red Items
       addCategoryToDoc("1. SIGNIFICANT AND/OR SAFETY CONCERNS (RED ITEMS)", data.redItems, true);
 
       // Add Yellow Items
@@ -331,45 +331,46 @@ export default function InspectionGenerator() {
   const totalYellow = data?.yellowItems?.length || 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-5xl mx-auto">
       
-      {/* Header Banner */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center p-3 bg-indigo-100 text-indigo-600 rounded-2xl mb-1 ring-8 ring-indigo-50/50">
-          <FileText className="w-8 h-8 stroke-[2.2]" />
+      {/* Playful Hero Header */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-100 via-indigo-100 to-pink-100 text-indigo-900 border border-indigo-200/80 shadow-2xs font-semibold text-xs mb-1">
+          <Sparkles className="w-4 h-4 text-violet-600 fill-violet-100" />
+          <span>Automated Word Summary Builder</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
-          Inspection Summary Word Generator
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900">
+          Inspection Summary <span className="gradient-text-hero">Word Generator</span>
         </h1>
-        <p className="text-slate-600 text-base sm:text-lg max-w-xl mx-auto font-normal">
-          Upload an inspection PDF report to extract and categorize Red & Yellow defects into a formatted Word (.docx) document.
+        <p className="text-slate-600 text-base sm:text-lg max-w-xl mx-auto font-medium leading-relaxed">
+          Upload any inspection PDF report to extract Red & Yellow defects and download a formatted Word (.docx) document.
         </p>
       </div>
 
       {/* Main Upload Card */}
       {!data && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-          <form onSubmit={handleUploadSubmit} className="space-y-6">
+        <div className="bg-white rounded-3xl border border-indigo-100/90 shadow-md p-6 sm:p-9 space-y-7 card-playful">
+          <form onSubmit={handleUploadSubmit} className="space-y-7">
             
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm flex items-start gap-3">
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4.5 rounded-2xl text-sm flex items-start gap-3.5 shadow-2xs">
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-semibold">Error</p>
-                  <p className="text-red-600">{error}</p>
+                  <p className="font-bold">Parsing Error</p>
+                  <p className="text-red-600 text-xs font-medium">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* File Drag and Drop Zone */}
+            {/* Drag & Drop File Box */}
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
+              className={`border-3 border-dashed rounded-3xl p-9 sm:p-12 text-center transition-all cursor-pointer ${
                 file
-                  ? "border-indigo-500 bg-indigo-50/30"
-                  : "border-slate-300 hover:border-indigo-400 bg-slate-50/50 hover:bg-slate-50"
+                  ? "border-indigo-500 bg-indigo-50/50 shadow-inner"
+                  : "border-indigo-200 hover:border-violet-400 bg-gradient-to-b from-slate-50/60 to-indigo-50/20 hover:bg-indigo-50/40"
               }`}
             >
               <input
@@ -379,25 +380,25 @@ export default function InspectionGenerator() {
                 className="hidden"
                 id="pdf-upload-input"
               />
-              <label htmlFor="pdf-upload-input" className="cursor-pointer space-y-3 block">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-xs">
-                  {file ? <File className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
+              <label htmlFor="pdf-upload-input" className="cursor-pointer space-y-4 block">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-pink-500 text-white flex items-center justify-center mx-auto shadow-md shadow-indigo-500/20 hover:scale-105 transition-transform duration-200">
+                  {file ? <File className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
                 </div>
                 
                 {file ? (
-                  <div>
-                    <p className="text-sm font-bold text-indigo-900">{file.name}</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB • Ready to analyze
+                  <div className="space-y-1">
+                    <p className="text-base font-extrabold text-indigo-900">{file.name}</p>
+                    <p className="text-xs font-semibold text-indigo-600/80 bg-indigo-100/70 inline-block px-3 py-1 rounded-full">
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB • Ready for AI extraction
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-800">
-                      Click to upload or drag & drop inspection PDF
+                  <div className="space-y-1.5">
+                    <p className="text-base font-bold text-slate-800">
+                      Click to choose or drop inspection PDF report here
                     </p>
-                    <p className="text-xs text-slate-400">
-                      Supports inspection report PDFs up to 25MB
+                    <p className="text-xs text-slate-400 font-medium">
+                      Supports HomeGauge, Spectora, InspectHQ, and custom PDFs up to 25MB
                     </p>
                   </div>
                 )}
@@ -408,21 +409,21 @@ export default function InspectionGenerator() {
             <button
               type="submit"
               disabled={loading || !file}
-              className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`w-full py-4 px-6 rounded-2xl font-extrabold text-base text-white shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
                 loading || !file
-                  ? "bg-indigo-400 cursor-not-allowed opacity-90"
-                  : "bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99]"
+                  ? "bg-indigo-300 cursor-not-allowed opacity-80"
+                  : "bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 hover:from-indigo-700 hover:via-violet-700 hover:to-pink-700 active:scale-[0.99] shadow-indigo-500/25"
               }`}
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Scanning PDF & Extracting All Red Defect Photos...</span>
+                  <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                  <span>Parsing Full PDF & Extracting Defect Photos...</span>
                 </>
               ) : (
                 <>
                   <span>Analyze Inspection PDF</span>
-                  <Sparkles className="w-4 h-4 text-indigo-200" />
+                  <Sparkles className="w-5 h-5 text-pink-200 fill-pink-200" />
                 </>
               )}
             </button>
@@ -432,27 +433,29 @@ export default function InspectionGenerator() {
 
       {/* Editable Results & Preview Section */}
       {data && (
-        <div className="space-y-6">
+        <div className="space-y-7 animate-in fade-in duration-300">
           
           {/* Header Action Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white rounded-3xl border border-indigo-100 shadow-md p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-playful">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <span>Inspection Analysis Results</span>
-                <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Inspection Analysis Results
+                </h2>
+                <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-2xs">
                   {totalRed + totalYellow} Items Extracted
                 </span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Source File: <strong className="text-slate-700">{data.fileName}</strong>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium truncate max-w-lg mt-1">
+                Source File: <strong className="text-slate-800">{data.fileName}</strong>
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => { setData(null); setFile(null); }}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
               >
                 Upload New PDF
               </button>
@@ -461,7 +464,7 @@ export default function InspectionGenerator() {
                 type="button"
                 onClick={generateWordDoc}
                 disabled={isExporting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white shadow-md transition-all cursor-pointer active:scale-95 shadow-indigo-500/20"
               >
                 {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 <span>Download Word Doc (.docx)</span>
@@ -469,73 +472,81 @@ export default function InspectionGenerator() {
             </div>
           </div>
 
-          {/* Stats & Category Filter */}
+          {/* Stats & Category Filter Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <button
               onClick={() => setActiveFilter("all")}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 activeFilter === "all"
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                  : "bg-white text-slate-800 border-slate-200 hover:border-slate-300"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20"
+                  : "bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-2xs"
               }`}
             >
-              <p className="text-xs opacity-75 font-medium">All Categorized Items</p>
-              <p className="text-2xl font-extrabold mt-1">{totalRed + totalYellow}</p>
+              <p className="text-xs opacity-80 font-bold uppercase tracking-wider">All Categorized Items</p>
+              <p className="text-3xl font-black mt-1">{totalRed + totalYellow}</p>
             </button>
 
             <button
               onClick={() => setActiveFilter("red")}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 activeFilter === "red"
-                  ? "bg-red-600 text-white border-red-600 shadow-xs"
-                  : "bg-white text-red-700 border-red-200 hover:border-red-300"
+                  ? "bg-gradient-to-br from-red-600 to-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/20"
+                  : "bg-white text-rose-700 border-rose-200 hover:border-rose-300 shadow-2xs"
               }`}
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs opacity-80 font-medium">Red Items (Safety/Significant)</p>
-                <AlertCircle className="w-4 h-4" />
+                <p className="text-xs opacity-90 font-bold uppercase tracking-wider">Red Items (Safety Concerns)</p>
+                <AlertCircle className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-extrabold mt-1">{totalRed}</p>
+              <p className="text-3xl font-black mt-1">{totalRed}</p>
             </button>
 
             <button
               onClick={() => setActiveFilter("yellow")}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 activeFilter === "yellow"
-                  ? "bg-amber-500 text-white border-amber-500 shadow-xs"
-                  : "bg-white text-amber-700 border-amber-200 hover:border-amber-300"
+                  ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-amber-500 shadow-md ring-2 ring-amber-500/20"
+                  : "bg-white text-amber-800 border-amber-200 hover:border-amber-300 shadow-2xs"
               }`}
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs opacity-80 font-medium">Yellow Items (Possible Defects)</p>
-                <AlertTriangle className="w-4 h-4" />
+                <p className="text-xs opacity-90 font-bold uppercase tracking-wider">Yellow Items (Maintenance)</p>
+                <AlertTriangle className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-extrabold mt-1">{totalYellow}</p>
+              <p className="text-3xl font-black mt-1">{totalYellow}</p>
             </button>
           </div>
 
           {/* Render Red Items */}
           {(activeFilter === "all" || activeFilter === "red") && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-red-50 p-4 rounded-xl border border-red-200">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-red-600"></span>
-                  <h3 className="font-bold text-red-900 text-sm sm:text-base">
-                    🔴 Significant and/or Safety Concerns ({totalRed})
+              <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 text-white p-4.5 rounded-2xl shadow-md">
+                <div className="flex items-center gap-3">
+                  <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs"></span>
+                  <h3 className="font-extrabold text-white text-base tracking-tight">
+                    Significant and/or Safety Concerns ({totalRed})
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => addItem("redItems")}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-white hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-300 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-white hover:bg-red-50 px-3.5 py-1.5 rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   Add Red Item
                 </button>
               </div>
 
               {data.redItems.length === 0 ? (
-                <p className="text-xs text-slate-400 italic px-2">No Red (Safety Concern) items detected.</p>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center space-y-2">
+                  <p className="text-xs text-slate-500 font-medium">No Red (Safety Concern) items detected in this report.</p>
+                  <button
+                    onClick={() => addItem("redItems")}
+                    className="text-xs font-bold text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Manually add a Red Item
+                  </button>
+                </div>
               ) : (
                 data.redItems.map((item, idx) => {
                   const itemImages = item.images && item.images.length > 0 
@@ -545,74 +556,74 @@ export default function InspectionGenerator() {
                     : [];
 
                   return (
-                    <div key={`red-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div key={`red-${idx}`} className="bg-white p-6 rounded-2xl border-2 border-slate-200/80 shadow-xs hover:border-rose-200 transition-colors space-y-4 card-playful">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-500">Item Code</label>
+                          <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Item Code</label>
                           <input
                             type="text"
                             value={item.code}
                             onChange={(e) => updateItem("redItems", idx, "code", e.target.value)}
-                            className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                            className="w-full mt-1 px-3.5 py-2 text-xs font-bold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-rose-500 outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-500">Section Group</label>
+                          <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Section Group</label>
                           <input
                             type="text"
                             value={item.section}
                             onChange={(e) => updateItem("redItems", idx, "section", e.target.value)}
-                            className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50"
+                            className="w-full mt-1 px-3.5 py-2 text-xs font-semibold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-rose-500 outline-none"
                           />
                         </div>
                         <div className="sm:col-span-2">
-                          <label className="block text-[11px] font-semibold text-slate-500">Item Title</label>
+                          <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Item Title</label>
                           <input
                             type="text"
                             value={item.title}
                             onChange={(e) => updateItem("redItems", idx, "title", e.target.value)}
-                            className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                            className="w-full mt-1 px-3.5 py-2 text-xs font-extrabold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-rose-500 outline-none"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <label className="block text-[11px] font-semibold text-slate-500">Inspection Summary (1-2 Sentences)</label>
+                          <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Inspection Summary (1-2 Sentences)</label>
                           <button
                             type="button"
                             onClick={() => deleteItem("redItems", idx)}
-                            className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
+                            className="text-xs text-rose-600 hover:text-rose-700 font-bold inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            Delete
+                            Delete Item
                           </button>
                         </div>
                         <textarea
-                          rows={2}
+                          rows={2.5}
                           value={item.summary}
                           onChange={(e) => updateItem("redItems", idx, "summary", e.target.value)}
-                          className="w-full p-3 text-xs rounded-lg border border-slate-200 bg-slate-50 leading-relaxed outline-none focus:border-indigo-500"
+                          className="w-full p-3.5 text-xs rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white leading-relaxed outline-none focus:border-rose-500 font-medium"
                         />
 
-                        {/* All Photo Thumbnails */}
-                        <div className="space-y-1 pt-1">
-                          <label className="block text-[11px] font-semibold text-slate-500 flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3 text-red-500" />
-                            Extracted Photos ({itemImages.length})
+                        {/* Defect Photo Thumbnails */}
+                        <div className="space-y-2 pt-1">
+                          <label className="block text-[11px] font-extrabold text-slate-600 flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-rose-500" />
+                            Extracted Defect Photos ({itemImages.length})
                           </label>
                           
                           {itemImages.length > 0 ? (
-                            <div className="flex flex-wrap gap-2 pt-1">
+                            <div className="flex flex-wrap gap-2.5 pt-1">
                               {itemImages.map((img, imgIdx) => (
-                                <div key={imgIdx} className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 w-28 h-20 flex items-center justify-center">
+                                <div key={imgIdx} className="rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 w-32 h-24 flex items-center justify-center shadow-2xs hover:scale-105 transition-transform duration-200">
                                   <img src={img.dataUrl} alt={`Photo ${imgIdx + 1}`} className="w-full h-full object-cover" />
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-400 italic">
-                              No photos detected on page {item.pageNumber || "-"}
+                            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-3 text-[11px] text-slate-400 font-medium italic">
+                              No embedded defect photos detected on page {item.pageNumber || "-"}
                             </div>
                           )}
                         </div>
@@ -627,75 +638,83 @@ export default function InspectionGenerator() {
           {/* Render Yellow Items */}
           {(activeFilter === "all" || activeFilter === "yellow") && (
             <div className="space-y-4 pt-4">
-              <div className="flex items-center justify-between bg-amber-50 p-4 rounded-xl border border-amber-200">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                  <h3 className="font-bold text-amber-900 text-sm sm:text-base">
-                    🟡 Possible Defects & Maintenance Items ({totalYellow})
+              <div className="flex items-center justify-between bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-4.5 rounded-2xl shadow-md">
+                <div className="flex items-center gap-3">
+                  <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs"></span>
+                  <h3 className="font-extrabold text-white text-base tracking-tight">
+                    Possible Defects & Maintenance Items ({totalYellow})
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => addItem("yellowItems")}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-white hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-white hover:bg-amber-50 px-3.5 py-1.5 rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   Add Yellow Item
                 </button>
               </div>
 
               {data.yellowItems.length === 0 ? (
-                <p className="text-xs text-slate-400 italic px-2">No Yellow (Possible Defect) items detected.</p>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center space-y-2">
+                  <p className="text-xs text-slate-500 font-medium">No Yellow (Possible Defect) items detected in this report.</p>
+                  <button
+                    onClick={() => addItem("yellowItems")}
+                    className="text-xs font-bold text-amber-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Manually add a Yellow Item
+                  </button>
+                </div>
               ) : (
                 data.yellowItems.map((item, idx) => (
-                  <div key={`yellow-${idx}`} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div key={`yellow-${idx}`} className="bg-white p-6 rounded-2xl border-2 border-slate-200/80 shadow-xs hover:border-amber-300 transition-colors space-y-3.5 card-playful">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-500">Item Code</label>
+                        <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Item Code</label>
                         <input
                           type="text"
                           value={item.code}
                           onChange={(e) => updateItem("yellowItems", idx, "code", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                          className="w-full mt-1 px-3.5 py-2 text-xs font-bold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-amber-500 outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-500">Section Group</label>
+                        <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Section Group</label>
                         <input
                           type="text"
                           value={item.section}
                           onChange={(e) => updateItem("yellowItems", idx, "section", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50"
+                          className="w-full mt-1 px-3.5 py-2 text-xs font-semibold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-amber-500 outline-none"
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-500">Item Title</label>
+                        <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Item Title</label>
                         <input
                           type="text"
                           value={item.title}
                           onChange={(e) => updateItem("yellowItems", idx, "title", e.target.value)}
-                          className="w-full mt-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50"
+                          className="w-full mt-1 px-3.5 py-2 text-xs font-extrabold rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white focus:border-amber-500 outline-none"
                         />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-500">Inspection Summary (1-2 Sentences)</label>
+                        <label className="block text-[11px] font-extrabold text-slate-500 uppercase">Inspection Summary (1-2 Sentences)</label>
                         <button
                           type="button"
                           onClick={() => deleteItem("yellowItems", idx)}
-                          className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
+                          className="text-xs text-rose-600 hover:text-rose-700 font-bold inline-flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          Delete
+                          Delete Item
                         </button>
                       </div>
                       <textarea
-                        rows={2}
+                        rows={2.5}
                         value={item.summary}
                         onChange={(e) => updateItem("yellowItems", idx, "summary", e.target.value)}
-                        className="w-full p-3 text-xs rounded-lg border border-slate-200 bg-slate-50 leading-relaxed outline-none focus:border-indigo-500"
+                        className="w-full p-3.5 text-xs rounded-xl border-2 border-slate-200 bg-slate-50/60 focus:bg-white leading-relaxed outline-none focus:border-amber-500 font-medium"
                       />
                     </div>
                   </div>
