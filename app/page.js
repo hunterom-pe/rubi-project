@@ -208,6 +208,37 @@ export default function Home() {
       {/* Main Tab View Container */}
       <div className={`mx-auto w-full py-8 px-4 sm:px-6 lg:px-8 flex-1 ${activeTab === "inspection" ? "max-w-5xl" : "max-w-3xl"}`}>
         
+        {/* Secondary Page Tab Switcher */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border-2 border-indigo-100 shadow-sm inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("denial")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+                activeTab === "denial"
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-indigo-600"
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span>1. Denial Email Writer</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("inspection")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+                activeTab === "inspection"
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-indigo-600"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>2. Inspection Word Generator</span>
+            </button>
+          </div>
+        </div>
+
         {activeTab === "denial" ? (
           /* TAB 1: WARRANTY DENIAL WRITER */
           <div className="space-y-8 animate-in fade-in duration-300">
