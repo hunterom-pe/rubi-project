@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { 
   FileText, Upload, Sparkles, AlertTriangle, AlertCircle, 
-  Download, Plus, Trash2, RefreshCw, File, Image as ImageIcon, Sparkle, Layers, CheckCircle2
+  Download, Plus, Trash2, RefreshCw, File, Image as ImageIcon
 } from "lucide-react";
 import { 
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, 
@@ -18,52 +18,22 @@ export default function InspectionGenerator() {
   const [activeFilter, setActiveFilter] = useState("all"); // "all" | "red" | "yellow"
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (!selectedFile.name.toLowerCase().endsWith(".pdf")) {
-        setError("Please select a valid PDF file.");
-        return;
-      }
-      if (selectedFile.size > 25 * 1024 * 1024) {
-        setError("File size exceeds 25MB limit.");
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
-    }
-  };
+  // Auto-process PDF file as soon as selected or dropped
+  const processFile = async (pdfFile) => {
+    if (!pdfFile) return;
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) {
-      if (!droppedFile.name.toLowerCase().endsWith(".pdf")) {
-        setError("Please drop a valid PDF file.");
-        return;
-      }
-      if (droppedFile.size > 25 * 1024 * 1024) {
-        setError("File size exceeds 25MB limit.");
-        return;
-      }
-      setFile(droppedFile);
-      setError(null);
-    }
-  };
-
-  const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      setError("Please upload a PDF file first.");
+    if (!pdfFile.name.toLowerCase().endsWith(".pdf") && pdfFile.type !== "application/pdf") {
+      setError("Please select a valid PDF inspection file.");
       return;
     }
 
+    setFile(pdfFile);
     setLoading(true);
     setError(null);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", pdfFile);
 
       const res = await fetch("/api/parse-inspection", {
         method: "POST",
@@ -78,9 +48,25 @@ export default function InspectionGenerator() {
 
       setData(result);
     } catch (err) {
+      console.error("Parse Inspection Error:", err);
       setError(err.message || "An error occurred while analyzing the PDF.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      processFile(selectedFile);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      processFile(droppedFile);
     }
   };
 
@@ -350,7 +336,7 @@ export default function InspectionGenerator() {
       {/* Main Upload Card */}
       {!data && (
         <div className="bg-white rounded-3xl border border-indigo-100/90 shadow-md p-6 sm:p-9 space-y-7 card-playful">
-          <form onSubmit={handleUploadSubmit} className="space-y-7">
+          <div className="space-y-7">
             
             {/* Error Message */}
             {error && (
@@ -368,28 +354,46 @@ export default function InspectionGenerator() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               className={`border-3 border-dashed rounded-3xl p-9 sm:p-12 text-center transition-all cursor-pointer ${
-                file
+                loading
+                  ? "border-indigo-400 bg-indigo-50/70"
+                  : file
                   ? "border-indigo-500 bg-indigo-50/50 shadow-inner"
                   : "border-indigo-200 hover:border-violet-400 bg-gradient-to-b from-slate-50/60 to-indigo-50/20 hover:bg-indigo-50/40"
               }`}
             >
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,application/pdf"
                 onChange={handleFileChange}
                 className="hidden"
                 id="pdf-upload-input"
+                disabled={loading}
               />
               <label htmlFor="pdf-upload-input" className="cursor-pointer space-y-4 block">
                 <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-pink-500 text-white flex items-center justify-center mx-auto shadow-md shadow-indigo-500/20 hover:scale-105 transition-transform duration-200">
-                  {file ? <File className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
+                  {loading ? (
+                    <RefreshCw className="w-8 h-8 animate-spin text-white" />
+                  ) : file ? (
+                    <File className="w-8 h-8" />
+                  ) : (
+                    <Upload className="w-8 h-8" />
+                  )}
                 </div>
                 
-                {file ? (
+                {loading ? (
+                  <div className="space-y-2">
+                    <p className="text-base font-extrabold text-indigo-900 animate-pulse">
+                      Analyzing PDF & Extracting Defect Photos...
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Gemini 3.6 Flash is scanning the report text and pages
+                    </p>
+                  </div>
+                ) : file ? (
                   <div className="space-y-1">
                     <p className="text-base font-extrabold text-indigo-900">{file.name}</p>
                     <p className="text-xs font-semibold text-indigo-600/80 bg-indigo-100/70 inline-block px-3 py-1 rounded-full">
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB • Ready for AI extraction
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB • Processing...
                     </p>
                   </div>
                 ) : (
@@ -398,36 +402,38 @@ export default function InspectionGenerator() {
                       Click to choose or drop inspection PDF report here
                     </p>
                     <p className="text-xs text-slate-400 font-medium">
-                      Supports HomeGauge, Spectora, InspectHQ, and custom PDFs up to 25MB
+                      Supports HomeGauge, Spectora, InspectHQ, and custom PDF reports
                     </p>
                   </div>
                 )}
               </label>
             </div>
 
-            {/* Analyze Action Button */}
-            <button
-              type="submit"
-              disabled={loading || !file}
-              className={`w-full py-4 px-6 rounded-2xl font-extrabold text-base text-white shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
-                loading || !file
-                  ? "bg-indigo-300 cursor-not-allowed opacity-80"
-                  : "bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 hover:from-indigo-700 hover:via-violet-700 hover:to-pink-700 active:scale-[0.99] shadow-indigo-500/25"
-              }`}
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                  <span>Parsing Full PDF & Extracting Defect Photos...</span>
-                </>
-              ) : (
-                <>
-                  <span>Analyze Inspection PDF</span>
-                  <Sparkles className="w-5 h-5 text-pink-200 fill-pink-200" />
-                </>
-              )}
-            </button>
-          </form>
+            {/* Instant Upload Indicator */}
+            <div className="text-center">
+              <label
+                htmlFor="pdf-upload-input"
+                className={`inline-flex items-center justify-center gap-2 py-3.5 px-8 rounded-2xl font-extrabold text-sm text-white shadow-lg transition-all cursor-pointer ${
+                  loading
+                    ? "bg-indigo-300 cursor-not-allowed opacity-80"
+                    : "bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 hover:from-indigo-700 hover:via-violet-700 hover:to-pink-700 active:scale-[0.99] shadow-indigo-500/25"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Analyzing Inspection PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-pink-200" />
+                    <span>Select Inspection PDF</span>
+                  </>
+                )}
+              </label>
+            </div>
+
+          </div>
         </div>
       )}
 
